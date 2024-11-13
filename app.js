@@ -1,11 +1,3 @@
-// Initialize Web3
-if (typeof window.ethereum !== 'undefined') {
-    window.Web3 = new Web3(window.ethereum);
-    window.ethereum.enable(); // Request account access if needed
-} else {
-    console.log("Please install MetaMask!");
-}
-
 const contractABI = [
 	{
 		"inputs": [
@@ -26,23 +18,10 @@ const contractABI = [
 		"type": "constructor"
 	},
 	{
-		"anonymous": false,
-		"inputs": [],
-		"name": "ElectionEnded",
-		"type": "event"
-	},
-	{
-		"inputs": [],
-		"name": "endElection",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "candidateId",
+				"name": "candidateIndex",
 				"type": "uint256"
 			}
 		],
@@ -50,25 +29,6 @@ const contractABI = [
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "voter",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "candidateId",
-				"type": "uint256"
-			}
-		],
-		"name": "Voted",
-		"type": "event"
 	},
 	{
 		"inputs": [
@@ -81,10 +41,29 @@ const contractABI = [
 		"name": "candidates",
 		"outputs": [
 			{
-				"internalType": "uint256",
-				"name": "id",
-				"type": "uint256"
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
 			},
+			{
+				"internalType": "uint256",
+				"name": "voteCount",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "index",
+				"type": "uint256"
+			}
+		],
+		"name": "getCandidate",
+		"outputs": [
 			{
 				"internalType": "string",
 				"name": "name",
@@ -101,7 +80,7 @@ const contractABI = [
 	},
 	{
 		"inputs": [],
-		"name": "candidatesCount",
+		"name": "getCandidateCount",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -114,12 +93,24 @@ const contractABI = [
 	},
 	{
 		"inputs": [],
-		"name": "electionEnded",
+		"name": "getCandidates",
 		"outputs": [
 			{
-				"internalType": "bool",
+				"components": [
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "voteCount",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct Voting.Candidate[]",
 				"name": "",
-				"type": "bool"
+				"type": "tuple[]"
 			}
 		],
 		"stateMutability": "view",
@@ -127,25 +118,12 @@ const contractABI = [
 	},
 	{
 		"inputs": [],
-		"name": "electionOfficial",
+		"name": "owner",
 		"outputs": [
 			{
 				"internalType": "address",
 				"name": "",
 				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getWinner",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
 			}
 		],
 		"stateMutability": "view",
@@ -170,44 +148,65 @@ const contractABI = [
 		"stateMutability": "view",
 		"type": "function"
 	}
-];
-const contractAddress = "0x94320CEFc93f525AAF941088797bAA3407706CDf";
+]
+const contractAddress = "0xDfC17A22CA4BC0d455b7c1238268a676c2F78b1a";
 
-const votingContract = new Web3.eth.Contract(contractABI, contractAddress);
+let web3;
+let votingContract;
 
-// Display all candidates
-async function loadCandidates() {
-    const candidatesCount = await votingContract.methods.candidatesCount().call();
-    const candidatesDiv = document.getElementById("candidates");
-    candidatesDiv.innerHTML = "";
+window.addEventListener("load", async () => {
+    if (typeof window.ethereum !== 'undefined') {
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.enable();
+        votingContract = new web3.eth.Contract(contractABI, contractAddress);
+        loadCandidates();
+    } else {
+        alert("Please install MetaMask to use this application.");
+    }
+});
 
-    for (let i = 1; i <= candidatesCount; i++) {
-        const candidate = await votingContract.methods.candidates(i).call();
-        candidatesDiv.innerHTML += `<p>ID: ${candidate.id}, Name: ${candidate.name}, Votes: ${candidate.voteCount}</p>`;
+async function addCandidate() {
+    const name = document.getElementById("candidateName").value;
+    const accounts = await web3.eth.getAccounts();
+    try {
+        await votingContract.methods.addCandidate(name).send({ from: accounts[0] });
+        alert("Candidate added successfully!");
+        loadCandidates();
+    } catch (error) {
+        console.error(error);
+        alert("Failed to add candidate.");
     }
 }
 
-// Voting function
-async function vote() {
-    const candidateId = document.getElementById("candidateId").value;
+async function voteForCandidate() {
+    const candidateIndex = document.getElementById("candidateList").value;
     const accounts = await web3.eth.getAccounts();
-    await votingContract.methods.vote(candidateId).send({ from: "0xb2b53e9b86891b5224a13f2f9f31d6dabe56820a" });
-    alert("Vote cast successfully!");
-    loadCandidates();
+    try {
+        await votingContract.methods.vote(candidateIndex).send({ from: accounts[0] });
+        alert("Vote cast successfully!");
+        loadCandidates();
+    } catch (error) {
+        console.error(error);
+        alert("Failed to cast vote.");
+    }
 }
 
-// End election function
-async function endElection() {
-    const accounts = await web3.eth.getAccounts();
-    await votingContract.methods.endElection().send({ from: "0xb2b53e9b86891b5224a13f2f9f31d6dabe56820a" });
-    alert("Election ended!");
-}
+async function loadCandidates() {
+    const candidateCount = await votingContract.methods.getCandidateCount().call();
+    const candidateListDropdown = document.getElementById("candidateList");
+    const candidatesDisplay = document.getElementById("candidatesDisplay");
+    candidateListDropdown.innerHTML = "";
+    candidatesDisplay.innerHTML = "";
 
-// Get the winner
-async function getWinner() {
-    const winner = await votingContract.methods.getWinner().call();
-    document.getElementById("winner").innerText = `Winner: ${winner}`;
-}
+    for (let i = 0; i < candidateCount; i++) {
+        const candidate = await votingContract.methods.getCandidate(i).call();
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = `${candidate.name}`;
+        candidateListDropdown.appendChild(option);
 
-// Load candidates initially
-loadCandidates();
+        const listItem = document.createElement("li");
+        listItem.textContent = `${candidate.name} - Votes: ${candidate.voteCount}`;
+        candidatesDisplay.appendChild(listItem);
+    }
+}

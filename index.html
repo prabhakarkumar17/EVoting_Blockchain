@@ -3,25 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blockchain Voting</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <title>Decentralized Voting DApp</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #candidateForm, #voteForm { margin-top: 20px; }
+    </style>
 </head>
 <body>
-    <h1>Blockchain Voting System</h1>
-    <div>
-        <h3>Candidates</h3>
-        <div id="candidates"></div>
+    <h1>Decentralized Voting Application</h1>
+    <div id="app">
+        <h2>Add Candidate (Admin Only)</h2>
+        <form id="candidateForm">
+            <input type="text" id="candidateName" placeholder="Candidate Name" required>
+            <button type="button" onclick="addCandidate()">Add Candidate</button>
+        </form>
+
+        <h2>Vote for a Candidate</h2>
+        <form id="voteForm">
+            <select id="candidateList"></select>
+            <button type="button" onclick="voteForCandidate()">Vote</button>
+        </form>
+
+        <h2>Candidates List</h2>
+        <ul id="candidatesDisplay"></ul>
     </div>
-    <div>
-        <input type="number" id="candidateId" placeholder="Candidate ID">
-        <button onclick="vote()">Vote</button>
-    </div>
-    <div>
-        <button onclick="endElection()">End Election</button>
-        <button onclick="getWinner()">Get Winner</button>
-        <p id="winner"></p>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.6.1/web3.min.js"></script>
+
     <script src="app.js"></script>
 </body>
 </html>
